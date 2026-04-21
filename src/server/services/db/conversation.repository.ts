@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '@/server/lib/supabase-admin'
+import { getSupabaseAdmin } from '@/server/lib/supabase-admin'
 import { Database } from '@/types/supabase'
 
 export type Conversation = Database['public']['Tables']['conversations']['Row']
@@ -6,7 +6,7 @@ export type Message = Database['public']['Tables']['messages']['Row']
 
 export class ConversationRepository {
   static async upsert(vendorId: string, customerId: string, phoneNumberId: string): Promise<Conversation> {
-    const { data, error } = await (supabaseAdmin
+    const { data, error } = await (getSupabaseAdmin()
       .from('conversations') as any)
       .upsert({
         vendor_id: vendorId,
@@ -23,7 +23,7 @@ export class ConversationRepository {
   }
 
   static async saveMessage(conversationId: string, vendorId: string, direction: 'inbound' | 'outbound', content: string) {
-    const { error } = await (supabaseAdmin
+    const { error } = await (getSupabaseAdmin()
       .from('messages') as any)
       .insert({
         conversation_id: conversationId,
@@ -36,7 +36,7 @@ export class ConversationRepository {
   }
 
   static async getAutomationSettings(vendorId: string) {
-    const { data, error } = await (supabaseAdmin
+    const { data, error } = await (getSupabaseAdmin()
       .from('automations') as any)
       .select('*')
       .eq('vendor_id', vendorId)
@@ -50,7 +50,7 @@ export class ConversationRepository {
   }
 
   static async getStoreInfo(vendorId: string) {
-    const { data, error } = await (supabaseAdmin
+    const { data, error } = await (getSupabaseAdmin()
       .from('stores') as any)
       .select('slug, name')
       .eq('vendor_id', vendorId)

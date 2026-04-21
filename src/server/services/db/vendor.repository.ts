@@ -1,11 +1,11 @@
-import { supabaseAdmin } from '@/server/lib/supabase-admin'
+import { getSupabaseAdmin } from '@/server/lib/supabase-admin'
 import { Database } from '@/types/supabase'
 
 export type Vendor = Database['public']['Tables']['vendors']['Row']
 
 export class VendorRepository {
   static async getById(id: string): Promise<Vendor | null> {
-    const { data, error } = await (supabaseAdmin
+    const { data, error } = await (getSupabaseAdmin()
       .from('vendors') as any)
       .select('*')
       .eq('id', id)
@@ -19,7 +19,7 @@ export class VendorRepository {
   }
 
   static async getByPhoneNumberId(phoneNumberId: string) {
-    const { data, error } = await (supabaseAdmin
+    const { data, error } = await (getSupabaseAdmin()
       .from('whatsapp_connections') as any)
       .select('*, vendors(*)')
       .eq('phone_number_id', phoneNumberId)
@@ -33,7 +33,7 @@ export class VendorRepository {
   }
 
   static async updatePlan(id: string, plan: string) {
-    const { error } = await (supabaseAdmin
+    const { error } = await (getSupabaseAdmin()
       .from('vendors') as any)
       .update({ plan })
       .eq('id', id)

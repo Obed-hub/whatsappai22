@@ -2,30 +2,64 @@
 
 import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { LayoutGrid, Store, MessageSquare, Sparkles, ArrowRight } from 'lucide-react'
+import { LayoutGrid, Store, MessageSquare, Sparkles, ArrowRight, Mail, Lock, UserPlus, LogIn } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [isSignUp, setIsSignUp] = useState(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const supabase = createClient()
+  const router = useRouter()
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const validateEmail = (email: string) => {
+    return email.toLowerCase().endsWith('@gmail.com')
+  }
+
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setMessage('')
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
+    if (!validateEmail(email)) {
+      setMessage('Only Gmail addresses (@gmail.com) are allowed.')
+      setLoading(false)
+      return
+    }
 
-    if (error) {
-      setMessage(error.message)
+    if (password.length < 6) {
+      setMessage('Password must be at least 6 characters long.')
+      setLoading(false)
+      return
+    }
+
+    if (isSignUp) {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+
+      if (error) {
+        setMessage(error.message)
+      } else {
+        setMessage('Registration successful! Please check your email for verification.')
+      }
     } else {
-      setMessage('Check your email for the login link!')
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (error) {
+        setMessage(error.message)
+      } else {
+        router.push('/dashboard')
+      }
     }
     setLoading(false)
   }
@@ -86,18 +120,43 @@ export default function LoginPage() {
       {/* Right side: Login Form */}
       <div className="w-full md:w-1/2 flex items-center justify-center p-8 md:p-16">
         <div className="max-w-md w-full">
-          <h2 className="text-3xl font-bold font-outfit text-slate-800 mb-2">Welcome Back</h2>
-          <p className="text-slate-500 mb-8">Sign in with your email to access your dashboard.</p>
+          <h2 className="text-3xl font-bold font-outfit text-slate-800 mb-2">
+            {isSignUp ? 'Create Account' : 'Welcome Back'}
+          </h2>
+          <p className="text-slate-500 mb-8">
+            {isSignUp 
+              ? 'Join the future of social commerce today.' 
+              : 'Sign in with your Gmail to access your dashboard.'}
+          </p>
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleAuth} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-semibold text-slate-700 mb-1">Email Address</label>
+              <label htmlFor="email" className="block text-sm font-semibold text-slate-700 mb-1 flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                Gmail Address
+              </label>
               <input
                 id="email"
                 type="email"
-                placeholder="name@company.com"
+                placeholder="yourname@gmail.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-semibold text-slate-700 mb-1 flex items-center gap-2">
+                <Lock className="w-4 h-4" />
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required
                 className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
               />
@@ -108,13 +167,32 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-blue-200 flex items-center justify-center gap-2 transition disabled:opacity-50"
             >
-              {loading ? 'Sending link...' : 'Continue with Email'}
+              {loading 
+                ? (isSignUp ? 'Creating account...' : 'Signing in...') 
+                : (isSignUp ? 'Create Gmail Account' : 'Sign In with Gmail')}
               <ArrowRight className="w-5 h-5" />
             </button>
           </form>
 
+          <div className="mt-6 text-center">
+            <button 
+              onClick={() => {
+                setIsSignUp(!isSignUp)
+                setMessage('')
+              }}
+              className="text-blue-600 text-sm font-bold hover:underline flex items-center justify-center gap-2 mx-auto"
+            >
+              {isSignUp ? <LogIn className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+              {isSignUp ? 'Already have an account? Sign In' : 'Need an account? Sign Up'}
+            </button>
+          </div>
+
           {message && (
-            <div className={`mt-6 p-4 rounded-xl text-sm font-medium ${message.includes('Check') ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
+            <div className={`mt-6 p-4 rounded-xl text-sm font-medium ${
+              message.includes('successful') || message.includes('verification') 
+                ? 'bg-green-50 text-green-700 border border-green-100' 
+                : 'bg-red-50 text-red-700 border border-red-100'
+            }`}>
               {message}
             </div>
           )}
@@ -127,7 +205,7 @@ export default function LoginPage() {
 function FeatureItem({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) {
   return (
     <div className="flex gap-4">
-      <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center flex-shrink-0 animate-pulse-slow">
+      <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center flex-shrink-0">
         {icon}
       </div>
       <div>

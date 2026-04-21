@@ -39,46 +39,21 @@ export function WhatsAppConnect({ initialStatus = 'inactive', initialPhone }: Wh
   }, [])
 
   const handleConnect = () => {
-    if (!window.FB) {
-      setError('Facebook SDK not loaded. Check your internet connection or ad blocker.')
-      return
-    }
-
     setLoading(true)
     setError(null)
 
-    // Trigger Meta Embedded Signup
-    window.FB.login((response: any) => {
-      if (response.authResponse) {
-        // Exchange code for token
-        const code = response.authResponse.code
-        if (!code) {
-           setError('No authorization code returned from Meta.')
-           setLoading(false)
-           return
-        }
+    const appId = process.env.NEXT_PUBLIC_META_APP_ID
+    const configId = process.env.NEXT_PUBLIC_META_CONFIG_ID
+    const redirectUri = process.env.NEXT_PUBLIC_META_REDIRECT_URI || "http://localhost:3000/api/whatsapp/callback"
+    const state = Math.random().toString(36).substring(7)
 
-        completeWhatsAppConnection(code)
-          .then((res) => {
-            if (res.success) {
-              setStatus('active')
-              setPhone(res.phoneNumber)
-            } else {
-              setError(res.error || 'Failed to complete connection.')
-            }
-          })
-          .catch((err) => setError(err.message))
-          .finally(() => setLoading(false))
-      } else {
-        setError('User cancelled login or did not fully authorize.')
-        setLoading(false)
-      }
-    }, {
-      config_id: process.env.NEXT_PUBLIC_META_CONFIG_ID, // Use Meta Config ID for Embedded Signup
-      response_type: 'code',
-      override_default_response_type: true,
-      scope: 'whatsapp_business_management,whatsapp_business_messaging'
-    })
+    console.log('[WhatsAppConnect] Initializing OAuth flow...')
+    console.log('[WhatsAppConnect] Redirect URI:', redirectUri)
+
+    const oauthUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&config_id=${configId}&response_type=code&scope=whatsapp_business_management,whatsapp_business_messaging`
+
+    // Redirect to Meta
+    window.location.href = oauthUrl
   }
 
   return (

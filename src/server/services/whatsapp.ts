@@ -64,20 +64,27 @@ export class WhatsAppService {
   static async exchangeCodeForToken(code: string) {
     const appId = process.env.NEXT_PUBLIC_META_APP_ID
     const appSecret = process.env.META_APP_SECRET
+    const redirectUri = process.env.META_REDIRECT_URI || 'http://localhost:3000/api/whatsapp/callback'
     
     if (!appId || !appSecret) {
       throw new Error('Meta App credentials missing')
     }
 
-    const url = `${this.baseUrl}/oauth/access_token?client_id=${appId}&client_secret=${appSecret}&code=${code}`
+    console.log('[WhatsAppService] Exchanging code for token...')
+    console.log('[WhatsAppService] Code:', code.substring(0, 10) + '...')
+    console.log('[WhatsAppService] Redirect URI:', redirectUri)
+
+    const url = `${this.baseUrl}/oauth/access_token?client_id=${appId}&client_secret=${appSecret}&code=${code}&redirect_uri=${redirectUri}`
     
     const response = await fetch(url)
     const data = await response.json()
     
     if (!response.ok) {
+      console.error('[WhatsAppService] Token exchange failed:', data.error)
       throw new Error(data.error?.message || 'Failed to exchange code for token')
     }
     
+    console.log('[WhatsAppService] Token exchange successful')
     return data.access_token
   }
 

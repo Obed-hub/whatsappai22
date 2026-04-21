@@ -229,13 +229,15 @@ export default function LandingPage() {
             <span className="text-xl font-black font-outfit text-slate-900">WhatsStoreAI</span>
           </div>
           
-          <div className="flex gap-8">
+          <div className="flex flex-wrap justify-center gap-x-8 gap-y-4">
             {['Twitter', 'LinkedIn', 'Support'].map(item => (
-              <a key={item} href="#" className="text-sm font-bold text-slate-400 hover:text-slate-900 transition-colors uppercase tracking-widest">{item}</a>
+              <a key={item} href="#" className="text-[10px] font-black text-slate-400 hover:text-slate-900 transition-colors uppercase tracking-widest">{item}</a>
             ))}
+            <Link href="/privacy" className="text-[10px] font-black text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-widest">Privacy Policy</Link>
+            <Link href="/terms" className="text-[10px] font-black text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-widest">Terms of Service</Link>
           </div>
           
-          <p className="text-sm font-bold text-slate-400">© 2026 WhatsStore AI Inc. All rights reserved.</p>
+          <p className="text-sm font-bold text-slate-400">© 2026 Adolo. All rights reserved.</p>
         </div>
       </footer>
     </div>

@@ -1,11 +1,11 @@
-import { supabaseAdmin } from '@/server/lib/supabase-admin'
+import { getSupabaseAdmin } from '@/server/lib/supabase-admin'
 import { Database, Json } from '@/types/supabase'
 
 export type Customer = Database['public']['Tables']['customers']['Row']
 
 export class CustomerRepository {
   static async upsert(vendorId: string, phone: string, name?: string, consentJson?: Json): Promise<Customer> {
-    const { data, error } = await (supabaseAdmin
+    const { data, error } = await (getSupabaseAdmin()
       .from('customers') as any)
       .upsert({
         vendor_id: vendorId,
@@ -22,7 +22,7 @@ export class CustomerRepository {
   }
 
   static async getByPhone(vendorId: string, phone: string): Promise<Customer | null> {
-    const { data, error } = await (supabaseAdmin
+    const { data, error } = await (getSupabaseAdmin()
       .from('customers') as any)
       .select('*')
       .eq('vendor_id', vendorId)

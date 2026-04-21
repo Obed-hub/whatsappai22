@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '@/server/lib/supabase-admin'
+import { getSupabaseAdmin } from '@/server/lib/supabase-admin'
 import { Database } from '@/types/supabase'
 
 export type Order = Database['public']['Tables']['orders']['Row']
@@ -22,7 +22,7 @@ export interface CreateOrderData {
 export class OrderRepository {
   static async createOrder(data: CreateOrderData): Promise<Order> {
     // 1. Create the order
-    const { data: order, error: orderError } = await (supabaseAdmin
+    const { data: order, error: orderError } = await (getSupabaseAdmin()
       .from('orders') as any)
       .insert({
         vendor_id: data.vendor_id,
@@ -48,7 +48,7 @@ export class OrderRepository {
       unit_price: item.unit_price
     }))
 
-    const { error: itemsError } = await (supabaseAdmin
+    const { error: itemsError } = await (getSupabaseAdmin()
       .from('order_items') as any)
       .insert(orderItems)
 
@@ -70,33 +70,33 @@ export class OrderRepository {
       activeConvResult
     ] = await Promise.all([
       // Total Revenue (Paid orders)
-      supabaseAdmin
+      getSupabaseAdmin()
         .from('orders')
         .select('total_amount')
         .eq('vendor_id', vendorId)
         .eq('status', 'paid'),
 
       // Order Counts
-      supabaseAdmin
+      getSupabaseAdmin()
         .from('orders')
         .select('*', { count: 'exact', head: true })
         .eq('vendor_id', vendorId),
 
       // Pending Orders
-      supabaseAdmin
+      getSupabaseAdmin()
         .from('orders')
         .select('*', { count: 'exact', head: true })
         .eq('vendor_id', vendorId)
         .eq('status', 'pending'),
 
       // Customers
-      supabaseAdmin
+      getSupabaseAdmin()
         .from('customers')
         .select('*', { count: 'exact', head: true })
         .eq('vendor_id', vendorId),
 
       // Active Conversations
-      supabaseAdmin
+      getSupabaseAdmin()
         .from('conversations')
         .select('*', { count: 'exact', head: true })
         .eq('vendor_id', vendorId)
@@ -121,7 +121,7 @@ export class OrderRepository {
   }
 
   static async getOrdersByVendor(vendorId: string, limit = 20) {
-    const { data, error } = await (supabaseAdmin
+    const { data, error } = await (getSupabaseAdmin()
       .from('orders') as any)
       .select('*, order_items(*, products(*))')
       .eq('vendor_id', vendorId)
@@ -133,7 +133,7 @@ export class OrderRepository {
   }
 
   static async updateStatusByReference(reference: string, status: string) {
-    const { error } = await (supabaseAdmin
+    const { error } = await (getSupabaseAdmin()
       .from('orders') as any)
       .update({ status })
       .eq('payment_reference', reference)

@@ -1,11 +1,11 @@
-import { supabaseAdmin } from '@/server/lib/supabase-admin'
+import { getSupabaseAdmin } from '@/server/lib/supabase-admin'
 import { Database } from '@/types/supabase'
 
 export type Product = Database['public']['Tables']['products']['Row']
 
 export class ProductRepository {
   static async getByVendorId(vendorId: string, publishedOnly = true): Promise<Product[]> {
-    let query = (supabaseAdmin
+    let query = (getSupabaseAdmin()
       .from('products') as any)
       .select('*')
       .eq('vendor_id', vendorId)
@@ -21,7 +21,7 @@ export class ProductRepository {
   }
 
   static async getBySlug(slug: string): Promise<Product | null> {
-    const { data, error } = await (supabaseAdmin
+    const { data, error } = await (getSupabaseAdmin()
       .from('products') as any)
       .select('*, stores(*)')
       .eq('slug', slug)
@@ -35,7 +35,7 @@ export class ProductRepository {
   }
 
   static async updateStock(id: string, newStock: number) {
-    const { error } = await (supabaseAdmin
+    const { error } = await (getSupabaseAdmin()
       .from('products') as any)
       .update({ stock: newStock })
       .eq('id', id)
