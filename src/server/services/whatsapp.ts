@@ -117,4 +117,48 @@ export class WhatsAppService {
     
     return data.data // Returns array of phone numbers
   }
+
+  static async sendViewStoreButton(phoneNumberId: string, accessToken: string, to: string, storeUrl: string, text: string = 'View Store') {
+    const url = `${this.baseUrl}/${phoneNumberId}/messages`
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          recipient_type: 'individual',
+          to: to,
+          type: 'interactive',
+          interactive: {
+            type: 'cta_url',
+            body: {
+              text: "Tap the button below to browse our full catalog and shop online! 🛍️"
+            },
+            action: {
+              name: "cta_url",
+              parameters: {
+                display_text: text,
+                url: storeUrl
+              }
+            }
+          }
+        }),
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        // Log error but don't throw if it's just a button failure (maybe outside 24h window)
+        console.error('WhatsApp Button Error:', data.error)
+        return null
+      }
+      return data
+    } catch (error) {
+      console.error('WhatsApp Button Fetch Error:', error)
+      return null
+    }
+  }
 }

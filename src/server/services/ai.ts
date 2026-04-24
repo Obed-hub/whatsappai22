@@ -1,14 +1,13 @@
-import Groq from 'groq-sdk'
+import OpenAI from 'openai'
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
 })
 
 export interface AIContext {
   vendorName: string
   storeUrl: string
   products: any[]
-  faqs?: string
   userMessage: string
 }
 
@@ -19,51 +18,71 @@ export class AIService {
     try {
       const systemPrompt = this.buildSystemPrompt(context)
       
-      const chatCompletion = await groq.chat.completions.create({
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage },
         ],
-        model: 'llama-3.3-70b-versatile',
         temperature: 0.7,
-        max_tokens: 300,
+        max_tokens: 150, // Strict limit for WhatsApp
       })
 
-      return chatCompletion.choices[0]?.message?.content || this.getFallbackReply(storeUrl)
+      return response.choices[0]?.message?.content || this.getFallbackReply(storeUrl)
     } catch (error) {
-      console.error('Groq AI Error:', error)
+      console.error('OpenAI Error:', error)
       return this.getFallbackReply(storeUrl)
     }
   }
 
+  static getRecommendedProducts(products: any[], userMessage: string) {
+    const message = userMessage.toLowerCase()
+    
+    // 1. Keyword matching
+    const matching = products.filter(p => 
+      p.is_published && 
+      (p.name.toLowerCase().includes(message) || 
+       p.description?.toLowerCase().includes(message))
+    )
+
+    if (matching.length > 0) {
+      return matching.slice(0, 3)
+    }
+
+    // 2. Fallback to best sellers (popularity_score)
+    const popular = [...products]
+      .filter(p => p.is_published)
+      .sort((a, b) => (b.popularity_score || 0) - (a.popularity_score || 0))
+    
+    if (popular.length > 0) {
+      return popular.slice(0, 3)
+    }
+
+    // 3. Fallback to newest
+    return products
+      .filter(p => p.is_published)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 3)
+  }
+
   private static buildSystemPrompt({ vendorName, storeUrl, products }: AIContext): string {
-    const productsContext = products.slice(0, 5).map(p => 
-      `- ${p.name}: ₦${p.price.toLocaleString()} (${p.stock > 0 ? 'In Stock' : 'Out of Stock'}). URL: ${storeUrl}/product/${p.slug}`
+    const recommended = products.slice(0, 3).map((p, i) => 
+      `${i + 1}. ${p.name} — ₦${Number(p.price).toLocaleString()}`
     ).join('\n')
 
-    return `You are a professional, high-converting AI Sales Assistant for ${vendorName}. 
-Your goal is to guide customers to browse the store, add items to their cart, and complete their checkout on the web.
-
-STRATEGY:
-1. Be enthusiastic and helpful. 
-2. If they like a product, tell them: "You can add this to your cart and checkout here: ${storeUrl}"
-3. Always include the Store URL (${storeUrl}) in your reply when discussing products.
-4. If they ask how to order, explain they should use the "Chat to Order" button or "Checkout" on the website.
-
+    return `You are a sales assistant for ${vendorName}. 
 RULES:
-1. ONLY use the provided product data.
-2. Recommend specific products from the list below based on their query.
-3. Keep replies SHORT (max 3 sentences), friendly, and extremely sales-focused.
-4. If a product is out of stock, apologize and suggest an alternative or the store link.
-5. Use emojis appropriately for a modern WhatsApp vibe. 🚀
-
-AVAILABLE PRODUCTS:
-${productsContext}
-
-STORE URL: ${storeUrl}`
+- Replies MUST be short (WhatsApp-friendly, max 5-6 lines).
+- No long paragraphs. No repetition.
+- Sales-focused.
+- ONLY use provided product data. No hallucinated inventory or prices.
+- If user asks for best products or shows interest, recommend these max 3:
+${recommended}
+- Encourage browsing the full store at: ${storeUrl}
+- Always end with store encouragement.`
   }
 
   private static getFallbackReply(storeUrl: string): string {
-    return "Hi! Please check our store for available products and pricing: " + storeUrl
+    return "Hi! Check out our latest products here: " + storeUrl
   }
 }

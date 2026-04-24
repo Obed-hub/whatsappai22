@@ -43,20 +43,21 @@ export function StoreSettingsForm({ store, vendorId }: StoreSettingsFormProps) {
       const fileExt = file.name.split('.').pop()
       const filePath = `${vendorId}/logo.${fileExt}`
 
-      // Upload to Supabase Storage (bucket: store-assets)
-      const { error: uploadError } = await supabase.storage
-        .from('store-assets')
-        .upload(filePath, file, { upsert: true })
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('vendorId', vendorId)
+      formData.append('bucket', 'store-assets')
+      formData.append('filePath', filePath)
 
-      if (uploadError) throw uploadError
+      const { uploadFileAction } = await import('@/app/actions/upload')
+      const result = await uploadFileAction(formData)
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('store-assets')
-        .getPublicUrl(filePath)
+      if (result.error) throw new Error(result.error)
+      if (!result.publicUrl) throw new Error('Upload failed unexpectedly')
 
-      setLogoUrl(publicUrl)
+      setLogoUrl(result.publicUrl)
     } catch (err: any) {
-      setError(err.message || 'Upload failed. Check your Supabase Storage bucket "store-assets" exists and is public.')
+      setError(err.message || 'Upload failed. Please try again.')
     } finally {
       setUploading(false)
     }

@@ -166,3 +166,22 @@ CREATE TRIGGER update_stores_updated_at BEFORE UPDATE ON stores FOR EACH ROW EXE
 CREATE TRIGGER update_products_updated_at BEFORE UPDATE ON products FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER update_automations_updated_at BEFORE UPDATE ON automations FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER update_whatsapp_connections_updated_at BEFORE UPDATE ON whatsapp_connections FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+-- Storage Buckets & Policies
+-- Note: Buckets "store-assets" and "product-images" must be created first before applying these policies
+
+-- Allow public access to read files
+CREATE POLICY "Give users public access to store assets" ON storage.objects FOR SELECT USING (bucket_id = 'store-assets');
+CREATE POLICY "Give users public access to product images" ON storage.objects FOR SELECT USING (bucket_id = 'product-images');
+
+-- Allow authenticated users to upload files
+CREATE POLICY "Allow authenticated users to upload store assets" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'store-assets');
+CREATE POLICY "Allow authenticated users to upload product images" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'product-images');
+
+-- Allow authenticated users to update their own files
+CREATE POLICY "Allow users to update their own store assets" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'store-assets' AND auth.uid() = owner);
+CREATE POLICY "Allow users to update their own product images" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'product-images' AND auth.uid() = owner);
+
+-- Allow authenticated users to delete their own files
+CREATE POLICY "Allow users to delete their own store assets" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'store-assets' AND auth.uid() = owner);
+CREATE POLICY "Allow users to delete their own product images" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'product-images' AND auth.uid() = owner);

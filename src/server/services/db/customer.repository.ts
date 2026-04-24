@@ -35,4 +35,31 @@ export class CustomerRepository {
     }
     return data
   }
+
+  static async updateMessageInfo(customerId: string, message: string) {
+    const supabase = getSupabaseAdmin()
+    
+    // First, check if first_message is already set
+    const { data: customer } = await (supabase
+      .from('customers') as any)
+      .select('first_message')
+      .eq('id', customerId)
+      .single()
+
+    const updateData: any = {
+      last_message: message,
+      last_seen_at: new Date().toISOString()
+    }
+
+    if (!customer?.first_message) {
+      updateData.first_message = message
+    }
+
+    return await (supabase
+      .from('customers') as any)
+      .update(updateData)
+      .eq('id', customerId)
+      .select()
+      .single()
+  }
 }

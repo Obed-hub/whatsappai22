@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useActionState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import { Upload, X, Save, Loader2 } from 'lucide-react'
+import { Upload, X, Save, Loader2, AlertCircle } from 'lucide-react'
 import { cn } from '@/server/lib/utils'
+import { createProduct, updateProduct } from '@/app/actions/products'
 
 interface ProductFormProps {
   initialData?: any
@@ -15,55 +16,12 @@ interface ProductFormProps {
 export function ProductForm({ initialData, storeId, vendorId }: ProductFormProps) {
   const router = useRouter()
   const supabase = createClient()
-  const [loading, setLoading] = useState(false)
   const [images, setImages] = useState<string[]>(initialData?.images || [])
   const [uploading, setUploading] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setLoading(true)
-
-    const formData = new FormData(e.currentTarget)
-    const name = formData.get('name') as string
-    const price = parseFloat(formData.get('price') as string)
-    const stock = parseInt(formData.get('stock') as string)
-    const description = formData.get('description') as string
-    const slug = name.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '')
-
-    const productData = {
-      vendor_id: vendorId,
-      store_id: storeId,
-      name,
-      slug,
-      price,
-      stock,
-      description,
-      images,
-      is_published: true,
-    }
-
-    let error
-    if (initialData) {
-      const { error: updateError } = await (supabase
-        .from('products') as any)
-        .update(productData)
-        .eq('id', initialData.id)
-      error = updateError
-    } else {
-      const { error: insertError } = await (supabase
-        .from('products') as any)
-        .insert([productData])
-      error = insertError
-    }
-
-    if (error) {
-      alert(error.message)
-    } else {
-      router.push('/dashboard/products')
-      router.refresh()
-    }
-    setLoading(false)
-  }
+  // Bind the id parameter to updateProduct if we are editing
+  const action = initialData ? updateProduct.bind(null, initialData.id) : createProduct
+  const [state, formAction, isPending] = useActionState(action, { error: undefined })
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -75,19 +33,21 @@ export function ProductForm({ initialData, storeId, vendorId }: ProductFormProps
       const fileName = `${Math.random()}.${fileExt}`
       const filePath = `${vendorId}/${fileName}`
 
-      const { error: uploadError } = await supabase.storage
-        .from('product-images')
-        .upload(filePath, file)
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('vendorId', vendorId)
+      formData.append('bucket', 'product-images')
+      formData.append('filePath', filePath)
 
-      if (uploadError) throw uploadError
+      const { uploadFileAction } = await import('@/app/actions/upload')
+      const result = await uploadFileAction(formData)
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(filePath)
+      if (result.error) throw new Error(result.error)
+      if (!result.publicUrl) throw new Error('Upload failed unexpectedly')
 
-      setImages([...images, publicUrl])
+      setImages([...images, result.publicUrl])
     } catch (error: any) {
-      alert(error.message)
+      alert(`Image upload failed: ${error.message}`)
     } finally {
       setUploading(false)
     }
@@ -98,7 +58,19 @@ export function ProductForm({ initialData, storeId, vendorId }: ProductFormProps
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8 bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+    <form action={formAction} className="space-y-8 bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+      {/* Hidden inputs to pass data to the Server Action */}
+      <input type="hidden" name="store_id" value={storeId} />
+      <input type="hidden" name="vendor_id" value={vendorId} />
+      <input type="hidden" name="images" value={JSON.stringify(images)} />
+
+      {state.error && (
+        <div className="p-4 bg-red-50 text-red-600 rounded-xl flex items-center gap-2 font-medium text-sm">
+          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+          {state.error}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-6">
           <div>
@@ -190,13 +162,14 @@ export function ProductForm({ initialData, storeId, vendorId }: ProductFormProps
         </button>
         <button
           type="submit"
-          disabled={loading}
+          disabled={isPending}
           className="px-8 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 transition flex items-center gap-2 disabled:opacity-50"
         >
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           {initialData ? 'Update Product' : 'Create Product'}
         </button>
       </div>
     </form>
   )
 }
+

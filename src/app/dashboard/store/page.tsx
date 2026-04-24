@@ -11,11 +11,54 @@ export default async function StoreSettingsPage() {
     redirect('/login')
   }
 
-  const { data: store } = await (supabase
+  let { data: store } = await (supabase
     .from('stores') as any)
     .select('*')
     .eq('vendor_id', user.id)
     .single()
+
+  // Auto-create a default store if it doesn't exist
+  if (!store) {
+    // Use admin client to bypass any RLS issues during initial creation
+    const { getSupabaseAdmin } = await import('@/server/lib/supabase-admin')
+    const supabaseAdmin = getSupabaseAdmin()
+    
+    // 1. Ensure vendor exists first to avoid Foreign Key errors
+    const { data: vendor } = await (supabaseAdmin.from('vendors') as any)
+      .select('id')
+      .eq('id', user.id)
+      .single()
+      
+    if (!vendor) {
+      const businessName = user.email?.split('@')[0] || 'My Store'
+      await (supabaseAdmin.from('vendors') as any).insert({
+        id: user.id,
+        email: user.email,
+        business_name: businessName
+      })
+    }
+
+    // 2. Create the store
+    const defaultStoreName = user.email?.split('@')[0] || 'My Store'
+    const baseSlug = defaultStoreName.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+    const randomSuffix = Math.random().toString(36).substring(2, 7)
+    
+    const { data: newStore, error: insertError } = await (supabaseAdmin
+      .from('stores') as any)
+      .insert({
+        vendor_id: user.id,
+        store_name: defaultStoreName,
+        slug: `${baseSlug}-${randomSuffix}`
+      })
+      .select()
+      .single()
+      
+    if (!insertError && newStore) {
+      store = newStore
+    } else {
+      console.error('Failed to auto-create store:', insertError)
+    }
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">

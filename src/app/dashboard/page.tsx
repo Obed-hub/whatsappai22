@@ -11,6 +11,7 @@ import {
 import Link from 'next/link'
 import { createClient } from '@/utils/supabase/server'
 import { OrderRepository } from '@/server/services/db/order.repository'
+import { OnboardingFlow } from '@/components/dashboard/OnboardingFlow'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -22,18 +23,35 @@ export default async function DashboardPage() {
   let stats, uniqueConvs = []
   
   try {
-    const [statsResult, messagesResult] = await Promise.all([
+    const [statsResult, messagesResult, whatsappResult, productsResult] = await Promise.all([
       OrderRepository.getVendorStats(vendorId),
       (supabase
         .from('messages') as any)
         .select('*, conversations(customers(name, phone))')
         .eq('vendor_id', vendorId)
         .order('created_at', { ascending: false })
-        .limit(10)
+        .limit(10),
+      (supabase
+        .from('whatsapp_connections') as any)
+        .select('phone_number_id')
+        .eq('vendor_id', vendorId)
+        .maybeSingle(),
+      (supabase
+        .from('products') as any)
+        .select('id', { count: 'exact', head: true })
+        .eq('vendor_id', vendorId)
     ])
 
     stats = statsResult
     const { data: recentMessages, error: msgError } = messagesResult
+    
+    // Check onboarding status
+    const isWhatsAppConnected = !!(whatsappResult.data?.phone_number_id)
+    const hasProducts = (productsResult.count || 0) > 0
+
+    if (!isWhatsAppConnected || !hasProducts) {
+      return <OnboardingFlow isWhatsAppConnected={isWhatsAppConnected} hasProducts={hasProducts} />
+    }
 
     if (msgError) throw msgError
 
@@ -131,7 +149,7 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex justify-between items-end">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
           <h1 className="text-3xl font-black font-outfit text-slate-900">Dashboard</h1>
           <p className="text-slate-500 font-medium">Welcome to your store's command center.</p>

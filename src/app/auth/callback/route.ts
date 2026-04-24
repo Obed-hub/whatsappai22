@@ -21,10 +21,19 @@ export async function GET(request: Request) {
           .single()
 
         if (!vendor) {
+          const businessName = user.email?.split('@')[0] || 'My Store'
           await (supabase.from('vendors') as any).insert({
             id: user.id,
             email: user.email,
-            business_name: user.email?.split('@')[0] || 'My Store'
+            business_name: businessName
+          })
+          
+          const baseSlug = businessName.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+          const randomSuffix = Math.random().toString(36).substring(2, 7)
+          await (supabase.from('stores') as any).insert({
+            vendor_id: user.id,
+            store_name: businessName,
+            slug: `${baseSlug}-${randomSuffix}`
           })
         }
       }

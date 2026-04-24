@@ -52,7 +52,7 @@ export class ConversationRepository {
   static async getStoreInfo(vendorId: string) {
     const { data, error } = await (getSupabaseAdmin()
       .from('stores') as any)
-      .select('slug, name')
+      .select('slug, store_name')
       .eq('vendor_id', vendorId)
       .single()
 

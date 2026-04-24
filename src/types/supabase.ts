@@ -88,6 +88,7 @@ export interface Database {
           description: string | null
           images: string[]
           is_published: boolean
+          popularity_score: number
           created_at: string
           updated_at: string
         }
@@ -129,6 +130,10 @@ export interface Database {
           tags: string[]
           last_seen_at: string
           consent_json: Json
+          first_message: string | null
+          last_message: string | null
+          last_intent: string | null
+          last_intent_at: string | null
           created_at: string
         }
         Insert: {
@@ -338,6 +343,221 @@ export interface Database {
           product_id?: string
           quantity?: number
           unit_price?: number
+          created_at?: string
+        }
+      }
+      followups: {
+        Row: {
+          id: string
+          vendor_id: string
+          customer_id: string
+          conversation_id: string | null
+          type: 'soft' | 'urgent' | 'reminder_1h' | 'reminder_24h'
+          scheduled_at: string
+          sent_at: string | null
+          cancelled_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          vendor_id: string
+          customer_id: string
+          conversation_id?: string | null
+          type: 'soft' | 'urgent' | 'reminder_1h' | 'reminder_24h'
+          scheduled_at: string
+          sent_at?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          vendor_id?: string
+          customer_id?: string
+          conversation_id?: string | null
+          type?: 'soft' | 'urgent' | 'reminder_1h' | 'reminder_24h'
+          scheduled_at?: string
+          sent_at?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+        }
+      }
+      alerts: {
+        Row: {
+          id: string
+          vendor_id: string
+          customer_id: string | null
+          type: string
+          message: string
+          sent_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          vendor_id: string
+          customer_id?: string | null
+          type: string
+          message: string
+          sent_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          vendor_id?: string
+          customer_id?: string | null
+          type?: string
+          message?: string
+          sent_at?: string | null
+          created_at?: string
+        }
+      }
+      interests: {
+        Row: {
+          id: string
+          customer_id: string
+          vendor_id: string
+          product_id: string | null
+          intent_score: number
+          intent_type: string | null
+          raw_message: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          customer_id: string
+          vendor_id: string
+          product_id?: string | null
+          intent_score?: number
+          intent_type?: string | null
+          raw_message?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          customer_id?: string
+          vendor_id?: string
+          product_id?: string | null
+          intent_score?: number
+          intent_type?: string | null
+          raw_message?: string | null
+          created_at?: string
+        }
+      }
+      back_in_stock_requests: {
+        Row: {
+          id: string
+          vendor_id: string
+          customer_id: string
+          product_id: string
+          status: 'pending' | 'notified' | 'cancelled'
+          notified_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          vendor_id: string
+          customer_id: string
+          product_id: string
+          status?: 'pending' | 'notified' | 'cancelled'
+          notified_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          vendor_id?: string
+          customer_id?: string
+          product_id?: string
+          status?: 'pending' | 'notified' | 'cancelled'
+          notified_at?: string | null
+          created_at?: string
+        }
+      }
+      analytics_events: {
+        Row: {
+          id: string
+          vendor_id: string
+          event_type: string
+          customer_id: string | null
+          metadata_json: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          vendor_id: string
+          event_type: string
+          customer_id?: string | null
+          metadata_json?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          vendor_id?: string
+          event_type?: string
+          customer_id?: string | null
+          metadata_json?: Json
+          created_at?: string
+        }
+      }
+      button_clicks: {
+        Row: {
+          id: string
+          vendor_id: string
+          customer_id: string | null
+          button_type: string
+          target_url: string
+          clicked_at: string
+          source: string | null
+          session_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          vendor_id: string
+          customer_id?: string | null
+          button_type: string
+          target_url: string
+          clicked_at?: string
+          source?: string | null
+          session_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          vendor_id?: string
+          customer_id?: string | null
+          button_type?: string
+          target_url?: string
+          clicked_at?: string
+          source?: string | null
+          session_id?: string | null
+          created_at?: string
+        }
+      }
+      store_visits: {
+        Row: {
+          id: string
+          vendor_id: string
+          customer_id: string | null
+          source: string | null
+          ref: string | null
+          visited_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          vendor_id: string
+          customer_id?: string | null
+          source?: string | null
+          ref?: string | null
+          visited_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          vendor_id?: string
+          customer_id?: string | null
+          source?: string | null
+          ref?: string | null
+          visited_at?: string
           created_at?: string
         }
       }

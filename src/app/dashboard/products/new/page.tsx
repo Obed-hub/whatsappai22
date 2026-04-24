@@ -21,7 +21,7 @@ export default async function NewProductPage() {
 
   if (!store) {
     // If no store exists, they need to create one first
-    redirect('/dashboard/store/new')
+    redirect('/dashboard/store')
   }
 
   return (

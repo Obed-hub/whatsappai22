@@ -19,18 +19,11 @@ export default async function ProductsPage() {
     .eq('vendor_id', userId)
     .order('created_at', { ascending: false })
 
-  // Demo Data injection
-  if (!products || products.length === 0) {
-    products = [
-      { id: '1', name: 'Premium Coffee Beans', slug: 'coffee-beans', price: 15000, stock: 45, images: ['https://images.unsplash.com/photo-1559056199-641a0ac8b55e?q=80&w=2670&auto=format&fit=crop'], is_published: true },
-      { id: '2', name: 'Ceramic Pour-over Set', slug: 'pour-over', price: 25000, stock: 12, images: ['https://images.unsplash.com/photo-1544787210-282713df8b03?q=80&w=2670&auto=format&fit=crop'], is_published: true },
-      { id: '3', name: 'Stainless Steel Grinder', slug: 'grinder', price: 18000, stock: 0, images: ['https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=2574&auto=format&fit=crop'], is_published: false }
-    ] as any
-  }
+  // No demo data injection here so the real empty state can be shown.
 
   return (
     <div className="space-y-8">
-      <div className="flex justify-between items-end">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
           <h1 className="text-3xl font-black font-outfit text-slate-900">Inventory</h1>
           <p className="text-slate-500 font-medium">Manage your products and stock levels.</p>
