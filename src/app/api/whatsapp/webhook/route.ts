@@ -17,14 +17,17 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const result = await WhatsAppWebhookWorkflow.processIncomingMessage(body)
     
-    return NextResponse.json(result)
+    // Await processing to ensure serverless environments don't terminate prematurely,
+    // but catch any internal errors so we ALWAYS return 200 to Meta.
+    await WhatsAppWebhookWorkflow.processIncomingMessage(body).catch(err => {
+      console.error('Workflow Error:', err)
+    })
+    
+    return new Response('OK', { status: 200 })
   } catch (error: any) {
-    console.error('Webhook Route Error:', error)
-    return NextResponse.json(
-      { status: 'error', message: error.message || 'Internal Server Error' },
-      { status: 500 }
-    )
+    console.error('Webhook Route Payload Parse Error:', error)
+    // Always return 200 to Meta to prevent retry loops
+    return new Response('OK', { status: 200 })
   }
 }

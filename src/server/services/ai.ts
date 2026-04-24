@@ -1,7 +1,7 @@
-import OpenAI from 'openai'
+import Groq from 'groq-sdk'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
 })
 
 export interface AIContext {
@@ -12,14 +12,14 @@ export interface AIContext {
 }
 
 export class AIService {
-  static async generateReply(context: AIContext) {
+  static async generateSalesReply(context: AIContext) {
     const { storeUrl, userMessage } = context
 
     try {
       const systemPrompt = this.buildSystemPrompt(context)
       
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+      const response = await groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage },
@@ -28,10 +28,10 @@ export class AIService {
         max_tokens: 150, // Strict limit for WhatsApp
       })
 
-      return response.choices[0]?.message?.content || this.getFallbackReply(storeUrl)
+      return response.choices[0]?.message?.content || this.getFallbackReply()
     } catch (error) {
-      console.error('OpenAI Error:', error)
-      return this.getFallbackReply(storeUrl)
+      console.error('Groq Error:', error)
+      return this.getFallbackReply()
     }
   }
 
@@ -65,24 +65,34 @@ export class AIService {
       .slice(0, 3)
   }
 
-  private static buildSystemPrompt({ vendorName, storeUrl, products }: AIContext): string {
+  private static buildSystemPrompt({ vendorName, products }: AIContext): string {
     const recommended = products.slice(0, 3).map((p, i) => 
       `${i + 1}. ${p.name} — ₦${Number(p.price).toLocaleString()}`
     ).join('\n')
 
-    return `You are a sales assistant for ${vendorName}. 
+    const productContext = recommended 
+      ? `We have these available right now:\n${recommended}`
+      : `We have many great products available in our store.`
+
+    return `You are a sales assistant for ${vendorName}.
 RULES:
-- Replies MUST be short (WhatsApp-friendly, max 5-6 lines).
-- No long paragraphs. No repetition.
-- Sales-focused.
-- ONLY use provided product data. No hallucinated inventory or prices.
-- If user asks for best products or shows interest, recommend these max 3:
-${recommended}
-- Encourage browsing the full store at: ${storeUrl}
-- Always end with store encouragement.`
+- Keep reply short (Maximum 5 lines).
+- WhatsApp-friendly and conversational.
+- No long paragraphs.
+- Sales-focused and use simple English.
+- Recommend browsing the store.
+- Do not hallucinate products. ONLY mention products provided below.
+- If no product data exists, give a general helpful reply.
+
+${productContext}
+
+Example format:
+"Sure 👇
+You can browse our available products in the store.
+Tap the button below to view everything."`
   }
 
-  private static getFallbackReply(storeUrl: string): string {
-    return "Hi! Check out our latest products here: " + storeUrl
+  private static getFallbackReply(): string {
+    return "Sure 👇\nYou can browse our available products in the store.\nTap the button below to view everything."
   }
 }

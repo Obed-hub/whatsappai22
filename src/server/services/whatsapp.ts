@@ -38,6 +38,12 @@ export class WhatsAppService {
     }
   }
 
+  static async sendWhatsAppText({ to, text, phoneNumberId }: { to: string, text: string, phoneNumberId: string }) {
+    const accessToken = process.env.WHATSAPP_TOKEN
+    if (!accessToken) throw new Error('Missing WHATSAPP_TOKEN')
+    return this.sendMessage(phoneNumberId, accessToken, to, text)
+  }
+
   static async sendTemplate(phoneNumberId: string, accessToken: string, to: string, templateName: string, languageCode: string = 'en_US') {
     const url = `${this.baseUrl}/${phoneNumberId}/messages`
     
@@ -118,14 +124,17 @@ export class WhatsAppService {
     return data.data // Returns array of phone numbers
   }
 
-  static async sendViewStoreButton(phoneNumberId: string, accessToken: string, to: string, storeUrl: string, text: string = 'View Store') {
+  static async sendViewStoreButton({ to, phoneNumberId, storeUrl, accessToken }: { to: string, phoneNumberId: string, storeUrl: string, accessToken?: string }) {
+    const token = accessToken || process.env.WHATSAPP_TOKEN
+    if (!token) throw new Error('Missing WHATSAPP_TOKEN')
+
     const url = `${this.baseUrl}/${phoneNumberId}/messages`
     
     try {
       const response = await fetch(url, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -136,12 +145,12 @@ export class WhatsAppService {
           interactive: {
             type: 'cta_url',
             body: {
-              text: "Tap the button below to browse our full catalog and shop online! 🛍️"
+              text: "Browse our store 👇"
             },
             action: {
               name: "cta_url",
               parameters: {
-                display_text: text,
+                display_text: "View Store",
                 url: storeUrl
               }
             }
@@ -151,7 +160,6 @@ export class WhatsAppService {
 
       const data = await response.json()
       if (!response.ok) {
-        // Log error but don't throw if it's just a button failure (maybe outside 24h window)
         console.error('WhatsApp Button Error:', data.error)
         return null
       }
